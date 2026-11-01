@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Planner</title>
+    <style>
+        /* --- CSS: STYLING --- */
+        body { margin: 0; padding: 0; background-color: #182030; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: 0.6s ease; }
+        
+        #loginScherm { display: flex; flex-direction: column; align-items: center; width: 320px; }
+        .logo { width: 240px; margin-bottom: 40px; }
+        
+        input, textarea, select { width: 100%; padding: 15px; margin-bottom: 15px; background-color: #242f47; border: 2px solid #5a8cdc; border-radius: 12px; color: white; font-size: 16px; font-weight: bold; font-family: inherit; box-sizing: border-box; outline: none; transition: 0.3s ease; }
+        input::placeholder, textarea::placeholder { color: #96a0b4; } 
+        input:focus, textarea:focus, select:focus { border-color: #ffffff; }
+        
+        .hoofd-knop { width: 100%; padding: 16px; margin-top: 10px; background-color: #5a64dc; color: white; border: none; border-radius: 20px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s ease; }
+        .hoofd-knop:hover { background-color: #4a54c4; transform: scale(0.98); }
+
+        #dashboardScherm { display: none; background-color: #ffffff; width: 440px; height: 740px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); flex-direction: column; position: relative; overflow: hidden; }
+        .watermerk-achtergrond { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='180'%3E%3Ctext transform='rotate(-25)' x='-30' y='100' font-size='22' fill='%23d2dae8' font-family='sans-serif' font-weight='bold' opacity='0.3'%3ESECURE PLANNER%3C/text%3E%3C/svg%3E"); z-index: 0; pointer-events: none; }
+        
+        .tab-inhoud { flex: 1; display: none; flex-direction: column; align-items: center; padding: 25px 20px; z-index: 1; overflow-y: auto; }
+        .tab-inhoud.actief { display: flex; }
+        
+        .avatar { width: 110px; height: 110px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 42px; font-weight: bold; margin-top: 20px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+        h1 { color: #283246; margin-bottom: 15px; font-size: 24px; text-align: center; width: 100%;}
+        
+        .uitlog-btn { background-color: #dc6464; width: 200px; margin-top: auto; margin-bottom: 10px; border-radius: 15px; }
+        .uitlog-btn:hover { background-color: #c85050; }
+
+        .nav-balk { display: flex; width: 100%; height: 70px; background-color: #ffffff; border-top: 1px solid #e4ebf5; z-index: 10; }
+        .nav-knop { flex: 1; border: none; background: transparent; color: #96a0b4; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .nav-knop:hover { background-color: #f8faff; color: #5a64dc; }
+        .nav-knop.actief { color: #5a64dc; border-top: 3px solid #5a64dc; background-color: #f4f6fc; }
+        
+        /* Agenda Grid */
+        .kalender-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; width: 100%; margin-top: 10px; }
+        .dag-knop { background-color: white; border: 1px solid #d2dae8; border-radius: 10px; padding: 12px 0; font-size: 15px; font-weight: bold; color: #3c465a; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .dag-knop.heeft-afspraak { background-color: #64b496; color: white; border-color: #64b496; }
+        
+        /* Pop-up Modals (Zwevende vensters) */
+        .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(24, 32, 48, 0.6); z-index: 20; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 85%; padding: 20px; border-radius: 20px; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-content h2 { margin-top: 0; color: #283246; text-align: center; font-size: 20px; }
+        .modal-content textarea { background-color: #f4f6fc; color: #283246; border: 1px solid #d2dae8; height: 120px; resize: none; }
+        .modal-content input { background-color: white; color: #283246; border: 2px solid #d2dae8; }
+        
+        /* Lichte velden voor Rapportage/Planning/Contact */
+        .licht-veld { background-color: #f4f6fc; color: #283246; border: 1px solid #d2dae8; }
+        .licht-veld:disabled { background-color: #e4ebf5; border: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loginScherm">
+        <img src="logo_transparant.png" alt="Secure Planner Logo" class="logo">
+        <input type="text" id="gebruikersnaam" placeholder="Gebruikersnaam">
+        <input type="password" id="wachtwoord" placeholder="Wachtwoord">
+        <button id="loginKnop" class="hoofd-knop">🔓 Inloggen</button>
+    </div>
+
+    <div id="dashboardScherm">
+        <div class="watermerk-achtergrond"></div>
+        
+        <!-- PROFIEL -->
+        <div id="tabProfiel" class="tab-inhoud actief">
+            <div id="avatarRondje" class="avatar">?</div>
+            <h1 id="welkomTekst">Welkom</h1>
+            <button id="uitlogKnop" class="hoofd-knop uitlog-btn">🚪 Uitloggen</button>
+        </div>
+
+        <!-- AGENDA -->
+        <div id="tabAgenda" class="tab-inhoud">
+            <h1 style="color: #5a8cdc;">November 2026</h1>
+            <div id="kalenderGrid" class="kalender-grid"></div>
+        </div>
+
+        <!-- RAPPORTAGE -->
+        <div id="tabRapportage" class="tab-inhoud">
+            <h1>📝 Logboek</h1>
+            <textarea id="logboekGeschiedenis" class="licht-veld" style="height: 250px; resize: none;" readonly>Historie:&#13;&#10;</textarea>
+            <select id="auteurKeuze" class="licht-veld" style="padding: 10px; margin-bottom: 10px;">
+                <option>Geschreven door: Moeder</option>
+                <option>Geschreven door: Zorgverlener</option>
+            </select>
+            <input type="text" id="nieuweNotitie" class="licht-veld" placeholder="Typ nieuwe rapportage...">
+            <button id="slaNotitieOpKnop" class="hoofd-knop" style="padding: 12px; font-size: 16px;">💾 Opslaan</button>
+        </div>
+
+        <!-- PLANNING -->
+        <div id="tabPlanning" class="tab-inhoud">
+            <h1>🗓️ Planning</h1>
+            <textarea id="planningVeld" class="licht-veld" style="height: 350px; resize: none;" placeholder="Bv: 08:30 - School..."></textarea>
+            <button id="slaPlanningOpKnop" class="hoofd-knop">💾 Planning Opslaan</button>
+        </div>
+
+        <!-- CONTACTEN -->
+        <div id="tabContact" class="tab-inhoud">
+            <h1>Contacten</h1>
+            <div style="width: 100%;">
+                <label style="color: #283246; font-weight: bold;">🚨 Noodnummer:</label>
+                <input type="text" id="noodVeld" class="licht-veld" disabled>
+                
+                <label style="color: #283246; font-weight: bold;">🏥 Wijkteam:</label>
+                <input type="text" id="wijkVeld" class="licht-veld" disabled>
+                
+                <label style="color: #283246; font-weight: bold;">👨‍⚕️ Behandelaar:</label>
+                <input type="text" id="behandelaarVeld" class="licht-veld" disabled>
+                
+                <button id="wijzigContactKnop" class="hoofd-knop" style="background-color: #64b496;">✏️ Wijzigen</button>
+            </div>
+        </div>
+
+        <!-- NAVIGATIEBALK -->
+        <div class="nav-balk">
+            <button class="nav-knop actief" onclick="wisselTab('tabProfiel', this)">Profiel</button>
+            <button class="nav-knop" onclick="wisselTab('tabAgenda', this)">Agenda</button>
+            <button class="nav-knop" onclick="wisselTab('tabRapportage', this)">Rapportage</button>
+            <button class="nav-knop" onclick="wisselTab('tabPlanning', this)">Planning</button>
+            <button class="nav-knop" onclick="wisselTab('tabContact', this)">Contact</button>
+        </div>
+
+        <!-- AGENDA POPUP (Zwevend venster) -->
+        <div id="agendaModal" class="modal-overlay">
+            <div class="modal-content">
+                <h2 id="modalTitel">Planning</h2>
+                <textarea id="modalGeschiedenis" readonly></textarea>
+                <input type="text" id="modalNieuweAfspraak" placeholder="Nieuwe afspraak...">
+                <button id="modalOpslaanKnop" class="hoofd-knop" style="margin-bottom: 10px;">Toevoegen</button>
+                <button onclick="sluitModal()" class="hoofd-knop" style="background-color: #dc6464;">Sluiten</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- JAVASCRIPT: LOGICA --- -->
+    <script>
+        const loginScherm = document.getElementById('loginScherm');
+        const dashboardScherm = document.getElementById('dashboardScherm');
+        let actieveDag = 0; // Onthoudt welke dag je hebt aangeklikt
+
+        // -- 1. INLOGGEN --
+        document.getElementById('loginKnop').addEventListener('click', () => {
+            const naam = document.getElementById('gebruikersnaam').value.trim().toLowerCase();
+            const wachtwoord = document.getElementById('wachtwoord').value;
+            if ((naam === 'nadia' || naam === 'diangelo') && wachtwoord === '1234') {
+                document.getElementById('welkomTekst').textContent = "Welkom, " + naam.charAt(0).toUpperCase() + naam.slice(1);
+                let avatar = document.getElementById('avatarRondje');
+                if (naam === 'nadia') { avatar.textContent = "NK"; avatar.style.backgroundColor = "#966edc"; } 
+                else { avatar.textContent = "DM"; avatar.style.backgroundColor = "#64b496"; }
+
+                document.body.style.backgroundColor = "#e4ebf5"; 
+                loginScherm.style.display = "none"; dashboardScherm.style.display = "flex";
+                
+                laadAlleGegevens(); // Laad alles in via LocalStorage
+            } else { alert("Fout wachtwoord of gebruikersnaam!"); }
+        });
+
+        document.getElementById('uitlogKnop').addEventListener('click', () => {
+            document.body.style.backgroundColor = "#182030"; 
+            dashboardScherm.style.display = "none"; loginScherm.style.display = "flex";
+        });
+
+        // -- 2. TABS WISSELEN --
+        function wisselTab(tabId, knopElement) {
+            document.querySelectorAll('.tab-inhoud').forEach(tab => tab.classList.remove('actief'));
+            document.querySelectorAll('.nav-knop').forEach(knop => knop.classList.remove('actief'));
+            document.getElementById(tabId).classList.add('actief');
+            knopElement.classList.add('actief');
+        }
+
+        // -- 3. ALLES LADEN UIT GEHEUGEN --
+        function laadAlleGegevens() {
+            // Contacten
+            document.getElementById('noodVeld').value = localStorage.getItem("noodnummer") || "112";
+            document.getElementById('wijkVeld').value = localStorage.getItem("wijkteam") || "010-1234567";
+            document.getElementById('behandelaarVeld').value = localStorage.getItem("behandelaar") || "Dr. Jansen";
+            
+            // Rapportage
+            const opgeslagenRapport = localStorage.getItem("rapportage_geschiedenis");
+            if(opgeslagenRapport) document.getElementById('logboekGeschiedenis').value = opgeslagenRapport;
+            
+            // Planning
+            const opgeslagenPlanning = localStorage.getItem("planning_geschiedenis");
+            if(opgeslagenPlanning) document.getElementById('planningVeld').value = opgeslagenPlanning;
+
+            genereerAgenda();
+        }
+
+        // -- 4. AGENDA LOGICA --
+        function genereerAgenda() {
+            const grid = document.getElementById('kalenderGrid');
+            grid.innerHTML = ""; // Maak eerst leeg
+            for (let i = 1; i <= 30; i++) {
+                let knop = document.createElement('button');
+                knop.className = 'dag-knop';
+                knop.innerText = i;
+                
+                // Check of deze dag data heeft in localStorage
+                if(localStorage.getItem('agenda_dag_' + i)) {
+                    knop.classList.add('heeft-afspraak');
+                    knop.innerText = i + " 📌";
+                }
+                
+                knop.onclick = () => openModal(i);
+                grid.appendChild(knop);
+            }
+        }
+
+        function openModal(dag) {
+            actieveDag = dag;
+            document.getElementById('modalTitel').innerText = "📅 Planning " + dag + " nov";
+            const bestaandeData = localStorage.getItem('agenda_dag_' + dag) || "Vrij / Geen afspraken";
+            document.getElementById('modalGeschiedenis').value = bestaandeData;
+            document.getElementById('modalNieuweAfspraak').value = "";
+            document.getElementById('agendaModal').style.display = "flex"; // Toon popup
+        }
+
+        function sluitModal() {
+            document.getElementById('agendaModal').style.display = "none";
+        }
+
+        document.getElementById('modalOpslaanKnop').addEventListener('click', () => {
+            const nieuw = document.getElementById('modalNieuweAfspraak').value;
+            if (nieuw.trim() !== "") {
+                let huidigeData = document.getElementById('modalGeschiedenis').value;
+                if (huidigeData === "Vrij / Geen afspraken") huidigeData = "";
+                
+                const nieuweData = huidigeData + "• " + nieuw + "\n";
+                document.getElementById('modalGeschiedenis').value = nieuweData;
+                
+                // Opslaan in browsergeheugen voor deze specifieke dag
+                localStorage.setItem('agenda_dag_' + actieveDag, nieuweData);
+                document.getElementById('modalNieuweAfspraak').value = "";
+                genereerAgenda(); // Vernieuw de knoppen zodat de pin (📌) verschijnt
+            }
+        });
+
+        // -- 5. RAPPORTAGE LOGICA --
+        document.getElementById('slaNotitieOpKnop').addEventListener('click', () => {
+            const notitie = document.getElementById('nieuweNotitie').value;
+            if (notitie.trim() !== "") {
+                const auteur = document.getElementById('auteurKeuze').value;
+                const datum = new Date().toLocaleString('nl-NL', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' });
+                const regel = `[${datum}] ${auteur}\n> ${notitie}\n\n`;
+                
+                const logboek = document.getElementById('logboekGeschiedenis');
+                logboek.value += regel;
+                localStorage.setItem("rapportage_geschiedenis", logboek.value);
+                document.getElementById('nieuweNotitie').value = "";
+            }
+        });
+
+        // -- 6. PLANNING LOGICA --
+        document.getElementById('slaPlanningOpKnop').addEventListener('click', () => {
+            localStorage.setItem("planning_geschiedenis", document.getElementById('planningVeld').value);
+            alert("Planning Opgeslagen!");
+        });
+
+        // -- 7. CONTACTEN LOGICA --
+        let isAanHetBewerken = false;
+        document.getElementById('wijzigContactKnop').addEventListener('click', (e) => {
+            isAanHetBewerken = !isAanHetBewerken;
+            const velden = ['noodVeld', 'wijkVeld', 'behandelaarVeld'];
+            
+            if (isAanHetBewerken) {
+                velden.forEach(id => document.getElementById(id).disabled = false);
+                e.target.innerHTML = "💾 Opslaan";
+                e.target.style.backgroundColor = "#5a64dc";
+            } else {
+                localStorage.setItem("noodnummer", document.getElementById('noodVeld').value);
+                localStorage.setItem("wijkteam", document.getElementById('wijkVeld').value);
+                localStorage.setItem("behandelaar", document.getElementById('behandelaarVeld').value);
+                
+                velden.forEach(id => document.getElementById(id).disabled = true);
+                e.target.innerHTML = "✏️ Wijzigen";
+                e.target.style.backgroundColor = "#64b496";
+            }
+        });
+    </script>
+</body>
+</html>
